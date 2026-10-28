@@ -1,22 +1,5 @@
 [
   {
-    "id": "20261027204625.028806800",
-    "targetId": "",
-    "targetName": "",
-    "zone": "未分区",
-    "title": "测试：消防通道被占用",
-    "description": "二楼走廊堆货",
-    "priority": "high",
-    "position": {
-      "x": -1.5,
-      "y": 0.78,
-      "z": 1.29
-    },
-    "status": "in_progress",
-    "createdAt": "2026-10-27T20:46:25+08:00",
-    "updatedAt": "2026-10-29T00:16:30+08:00"
-  },
-  {
     "id": "20261027234306.265241100",
     "targetId": "PUMP-A",
     "targetName": "水泵机组 A",
@@ -29,9 +12,9 @@
       "y": 0,
       "z": 0
     },
-    "status": "in_progress",
+    "status": "resolved",
     "createdAt": "2026-10-27T15:43:06Z",
-    "updatedAt": "2026-10-29T00:16:36+08:00"
+    "updatedAt": "2026-10-29T01:13:48+08:00"
   },
   {
     "id": "20261026210601.142071800",
@@ -66,5 +49,73 @@
     "status": "resolved",
     "createdAt": "2026-10-28T16:14:55Z",
     "updatedAt": "2026-10-29T00:16:24+08:00"
+  },
+  {
+    "id": "20261029004329.989238100",
+    "targetId": "CABINET-C",
+    "targetName": "控制柜 C",
+    "zone": "未分区",
+    "title": "控制柜故障",
+    "description": "温度过高",
+    "priority": "high",
+    "position": {
+      "x": 3.076021194458008,
+      "y": 0.8766217231750488,
+      "z": 1.600000023841858
+    },
+    "status": "resolved",
+    "createdAt": "2026-10-28T16:43:29Z",
+    "updatedAt": "2026-10-29T00:44:38+08:00"
+  },
+  {
+    "id": "20261029004552.360967600",
+    "targetId": "VALVE-A",
+    "targetName": "主水管阀门 A",
+    "zone": "未分区",
+    "title": "阀门漏水",
+    "description": "123",
+    "priority": "medium",
+    "position": {
+      "x": 1.000551700592041,
+      "y": 2.9237289428710938,
+      "z": -2.1182754039764404
+    },
+    "status": "in_progress",
+    "createdAt": "2026-10-28T16:45:52Z",
+    "updatedAt": "2026-10-29T00:47:38+08:00"
+  },
+  {
+    "id": "20261029010803.947919200",
+    "targetId": "PUMP-B",
+    "targetName": "水泵机组 B",
+    "zone": "未分区",
+    "title": "水泵断了",
+    "description": "12345",
+    "priority": "high",
+    "position": {
+      "x": -3.8684024810791016,
+      "y": 0.6975715160369873,
+      "z": -1.2145907878875732
+    },
+    "status": "resolved",
+    "createdAt": "2026-10-28T17:08:03Z",
+    "updatedAt": "2026-10-29T01:12:46+08:00"
+  },
+  {
+    "id": "20261029010850.421203500",
+    "targetId": "Ground",
+    "targetName": "Ground",
+    "zone": "未分区",
+    "title": "路面被遮挡",
+    "description": "111111",
+    "priority": "low",
+    "position": {
+      "x": -3.556588649749756,
+      "y": -1.0345488364196613e-17,
+      "z": 0.6522871851921082
+    },
+    "status": "in_progress",
+    "createdAt": "2026-10-28T17:08:50Z",
+    "updatedAt": "2026-10-29T01:12:41+08:00"
   }
 ]
