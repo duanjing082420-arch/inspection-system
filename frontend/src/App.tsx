@@ -35,6 +35,48 @@ const PRIORITY_LABEL: Record<string, string> = {
   low: '低',
 }
 
+// 侧边栏的四个工作区。原先这几项只写了样式、没有点击处理，
+// 所以「巡检问题 / 处理记录 / 系统设置」点了没有任何反应。
+// 改成数组驱动 + 一个 view 状态，导航和内容区都跟着它走。
+type ViewKey = 'overview' | 'issues' | 'records' | 'settings'
+
+const NAV_ITEMS: { key: ViewKey; icon: string; label: string }[] = [
+  { key: 'overview', icon: '▦', label: '问题总览' },
+  { key: 'issues', icon: '▤', label: '巡检问题' },
+  { key: 'records', icon: '◷', label: '处理记录' },
+  { key: 'settings', icon: '⚙', label: '系统设置' },
+]
+
+const VIEW_META: Record<
+  ViewKey,
+  { breadcrumb: string; eyebrow: string; title: string; desc: string }
+> = {
+  overview: {
+    breadcrumb: '问题总览',
+    eyebrow: 'INSPECTION OVERVIEW',
+    title: '巡检问题总览',
+    desc: '统一记录、跟踪和处理现场巡检中发现的问题。',
+  },
+  issues: {
+    breadcrumb: '巡检问题',
+    eyebrow: 'ISSUE REGISTRY',
+    title: '巡检问题',
+    desc: '全部已登记的问题，可按关键词、优先级和区域筛选。',
+  },
+  records: {
+    breadcrumb: '处理记录',
+    eyebrow: 'HANDLING LOG',
+    title: '处理记录',
+    desc: '已经进入处理流程的问题；「待处理」的不在此列。',
+  },
+  settings: {
+    breadcrumb: '系统设置',
+    eyebrow: 'SYSTEM SETTINGS',
+    title: '系统设置',
+    desc: '服务连接状态与前后端的接口约定。',
+  },
+}
+
 const emptyForm = {
   title: '',
   description: '',
@@ -68,6 +110,10 @@ function App() {
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [zoneFilter, setZoneFilter] = useState('all')
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
+  const [view, setView] = useState<ViewKey>('overview')
+  // 系统设置页的服务状态：只有点开设置才需要，但启动时先探一次，导航上也能看出通不通
+  const [health, setHealth] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
+  const [healthText, setHealthText] = useState('')
 
   const loadIssues = useCallback(async () => {
     setLoading(true)
@@ -85,9 +131,25 @@ function App() {
     }
   }, [])
 
+  // 探一次 /api/health，给「系统设置」页和右上角的状态点提供依据
+  const checkHealth = useCallback(async () => {
+    setHealth('checking')
+    try {
+      const response = await fetch('/api/health')
+      if (!response.ok) throw new Error(String(response.status))
+      const data = await response.json()
+      setHealth('ok')
+      setHealthText(data.timestamp ? `最近一次检测：${formatTime(data.timestamp)}` : '服务正常')
+    } catch {
+      setHealth('fail')
+      setHealthText('无法连接后端，请确认 Go 服务运行在 localhost:8080')
+    }
+  }, [])
+
   useEffect(() => {
     void loadIssues()
-  }, [loadIssues])
+    void checkHealth()
+  }, [loadIssues, checkHealth])
 
   async function createIssue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -201,6 +263,16 @@ function App() {
     )
   })
 
+  // 「处理记录」只留已经动过的问题（处理中 / 已解决）。
+  // 如果把待处理的也列进去，这一页就和「巡检问题」没区别了。
+  const displayedIssues =
+    view === 'records'
+      ? visibleIssues.filter((item) => item.status !== 'open')
+      : visibleIssues
+
+  // 侧边栏「处理记录」上的角标数：已经动过的问题有几条
+  const recordsCount = issues.filter((item) => item.status !== 'open').length
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -213,12 +285,30 @@ function App() {
         </div>
 
         <div className="nav-label">工作台</div>
-        <div className="nav-item active"><span>▦</span> 问题总览</div>
-        <div className="nav-item"><span>▤</span> 巡检问题</div>
-        <div className="nav-item"><span>◷</span> 处理记录</div>
+        {NAV_ITEMS.filter((item) => item.key !== 'settings').map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`nav-item ${view === item.key ? 'active' : ''}`}
+            onClick={() => setView(item.key)}
+            aria-current={view === item.key ? 'page' : undefined}
+          >
+            <span>{item.icon}</span> {item.label}
+            {item.key === 'records' && recordsCount > 0 && (
+              <span className="nav-badge">{recordsCount}</span>
+            )}
+          </button>
+        ))}
 
         <div className="nav-label nav-label-lower">系统</div>
-        <div className="nav-item"><span>⚙</span> 系统设置</div>
+        <button
+          type="button"
+          className={`nav-item ${view === 'settings' ? 'active' : ''}`}
+          onClick={() => setView('settings')}
+          aria-current={view === 'settings' ? 'page' : undefined}
+        >
+          <span>⚙</span> 系统设置
+        </button>
 
         <div className="sidebar-bottom">
           <div className="avatar">巡</div>
@@ -232,7 +322,7 @@ function App() {
 
       <main className="main-area">
         <header className="topbar">
-          <div className="breadcrumb">工作台 <span>/</span> 问题总览</div>
+          <div className="breadcrumb">工作台 <span>/</span> {VIEW_META[view].breadcrumb}</div>
           <div className="topbar-right">
             <span className="service-dot" />
             <span>本地服务</span>
@@ -243,17 +333,19 @@ function App() {
         <div className="content">
           <section className="welcome">
             <div>
-              <div className="eyebrow">INSPECTION OVERVIEW</div>
-              <h1>巡检问题总览</h1>
-              <p>统一记录、跟踪和处理现场巡检中发现的问题。</p>
+              <div className="eyebrow">{VIEW_META[view].eyebrow}</div>
+              <h1>{VIEW_META[view].title}</h1>
+              <p>{VIEW_META[view].desc}</p>
             </div>
-            <button className="primary-button" onClick={() => {
-              setShowForm(!showForm)
-              setNotice('')
-              setError('')
-            }}>
-              <span>＋</span> 新增巡检问题
-            </button>
+            {view !== 'settings' && view !== 'records' && (
+              <button className="primary-button" onClick={() => {
+                setShowForm(!showForm)
+                setNotice('')
+                setError('')
+              }}>
+                <span>＋</span> 新增巡检问题
+              </button>
+            )}
           </section>
 
           {notice && <div className="notice success-notice">✓ {notice}</div>}
@@ -326,6 +418,7 @@ function App() {
             </section>
           )}
 
+          {view === 'overview' && (
           <section className="stats-grid">
             <div className="stat-card">
               <div className="stat-top"><span>问题总数</span><div className="stat-icon purple">▤</div></div>
@@ -348,12 +441,18 @@ function App() {
               <div className="stat-foot">已完成整改的问题</div>
             </div>
           </section>
+          )}
 
+          {view !== 'settings' && (
           <section className="panel table-panel">
             <div className="panel-heading table-heading">
               <div>
-                <h2>巡检问题记录</h2>
-                <p>查看问题详情，并跟踪整改进度</p>
+                <h2>{view === 'records' ? '处理记录明细' : '巡检问题记录'}</h2>
+                <p>
+                  {view === 'records'
+                    ? '只列出已经进入处理流程的问题'
+                    : '查看问题详情，并跟踪整改进度'}
+                </p>
               </div>
               <button className="secondary-button refresh-button" onClick={() => void loadIssues()}>
                 ↻ 刷新列表
@@ -423,11 +522,17 @@ function App() {
 
             {loading ? (
               <div className="empty-state">正在加载巡检问题…</div>
-            ) : visibleIssues.length === 0 ? (
+            ) : displayedIssues.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">▤</div>
-                <strong>暂无巡检问题</strong>
-                <p>{filter === 'all' ? '点击右上角“新增巡检问题”开始登记。' : '当前筛选条件下没有问题记录。'}</p>
+                <div className="empty-icon">{view === 'records' ? '◷' : '▤'}</div>
+                <strong>{view === 'records' ? '还没有处理过的记录' : '暂无巡检问题'}</strong>
+                <p>
+                  {view === 'records'
+                    ? '把某条问题的状态改成「处理中」或「已解决」，它就会出现在这里。'
+                    : filter === 'all'
+                      ? '点击右上角“新增巡检问题”开始登记。'
+                      : '当前筛选条件下没有问题记录。'}
+                </p>
               </div>
             ) : (
               <div className="table-scroll">
@@ -443,7 +548,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleIssues.map((issue) => (
+                    {displayedIssues.map((issue) => (
                       <tr key={issue.id}>
                         <td className="issue-cell">
                           <button
@@ -501,8 +606,74 @@ function App() {
                 </table>
               </div>
             )}
-            <div className="table-footer">共 {visibleIssues.length} 条记录 <span>数据来自本地 Go 服务</span></div>
+            <div className="table-footer">共 {displayedIssues.length} 条记录 <span>数据来自本地 Go 服务</span></div>
           </section>
+          )}
+
+          {view === 'settings' && (
+            <section className="panel settings-panel">
+              <div className="panel-heading table-heading">
+                <div>
+                  <h2>服务连接</h2>
+                  <p>前端通过 vite 代理访问 Go 后端，开发环境不需要配跨域</p>
+                </div>
+                <button
+                  className="secondary-button refresh-button"
+                  onClick={() => void checkHealth()}
+                  disabled={health === 'checking'}
+                >
+                  ↻ 重新检测
+                </button>
+              </div>
+
+              <div className="settings-grid">
+                <div className="settings-item">
+                  <span>接口前缀</span>
+                  <strong>/api</strong>
+                  <small>由 vite.config.ts 代理到 localhost:8080</small>
+                </div>
+                <div className="settings-item">
+                  <span>服务状态</span>
+                  <strong
+                    className={
+                      health === 'ok' ? 'state-ok' : health === 'fail' ? 'state-fail' : ''
+                    }
+                  >
+                    {health === 'ok'
+                      ? '正常'
+                      : health === 'checking'
+                        ? '检测中…'
+                        : health === 'fail'
+                          ? '无法连接'
+                          : '未检测'}
+                  </strong>
+                  <small>{healthText || '点右上角重新检测'}</small>
+                </div>
+                <div className="settings-item">
+                  <span>数据条数</span>
+                  <strong>{issues.length} 条</strong>
+                  <small>
+                    待处理 {pending} · 处理中 {processing} · 已解决 {completed}
+                  </small>
+                </div>
+              </div>
+
+              <div className="settings-list">
+                <h3>接口约定</h3>
+                <ul>
+                  <li><code>GET /api/health</code><span>服务健康检查</span></li>
+                  <li><code>GET /api/issues</code><span>拉取全部问题</span></li>
+                  <li><code>POST /api/issues</code><span>新增问题（新记录状态固定为 open）</span></li>
+                  <li><code>PATCH /api/issues/:id/status</code><span>改处理状态，只接受英文枚举</span></li>
+                  <li><code>DELETE /api/issues/:id</code><span>删除问题</span></li>
+                </ul>
+                <p className="settings-note">
+                  状态值必须传 <code>open</code> / <code>in_progress</code> / <code>resolved</code>，
+                  传中文会被后端拒绝（400）。界面显示中文，传输用英文。
+                </p>
+              </div>
+            </section>
+          )}
 
           <footer className="page-footer">
             <span>现场巡检问题管理系统</span>

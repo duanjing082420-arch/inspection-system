@@ -820,6 +820,62 @@ Windows 上应在控制台按 Ctrl+C 触发（Go 在该平台支持 `os.Interrup
 
 ---
 
+## P-027
+
+**目标**：修复工作台侧边栏「巡检问题 / 处理记录 / 系统设置」点击无反应。
+
+**Prompt 原文**：
+
+> "@image#1:Clipboard_Screenshot.png 巡检问题 处理记录 系统设置无法点开"
+
+**结果**：
+
+先定位原因而不是直接改样式。查 `frontend/src/App.tsx` 后发现这四项是**纯静态 div**：
+
+```tsx
+<div className="nav-item active"><span>▦</span> 问题总览</div>
+<div className="nav-item"><span>▤</span> 巡检问题</div>   // 没有 onClick
+<div className="nav-item"><span>◷</span> 处理记录</div>   // 没有 onClick
+<div className="nav-item"><span>⚙</span> 系统设置</div>   // 没有 onClick
+```
+
+也就是说它们**从来没有绑过任何事件**，不是"坏了"而是"没做"。只有样式，没有行为。
+
+**修改**：
+
+1. 新增 `ViewKey = 'overview' | 'issues' | 'records' | 'settings'` 与 `NAV_ITEMS` / `VIEW_META`
+   两张配置表，导航改为数组驱动，选中项由 `view` 状态决定。
+2. 导航元素从 `<div>` 改成 `<button type="button">`——原生可点击、可 Tab 聚焦、带 `aria-current`；
+   CSS 里同步清掉 button 默认的边框/背景/字体（否则侧边栏会冒出灰色按钮外观），并补 hover 与 focus-visible。
+3. 内容区跟着 `view` 变：
+   - `overview`：统计卡 + 记录表（原样）
+   - `issues`：只保留记录表（不重复展示统计卡）
+   - `records`：只列 `status !== 'open'` 的问题，侧边栏带条数角标
+   - `settings`：新增面板（接口前缀、健康检查结果、数据条数、接口约定清单）
+4. 三处空态文案分开写。`records` 为空时不再显示"暂无巡检问题"，
+   改为"还没有处理过的记录 —— 把某条问题改成处理中或已解决，它就会出现在这里"。
+5. `records` 页与 `settings` 页隐藏右上角「新增巡检问题」按钮（那两页新增没有意义）。
+6. `checkHealth()` 复用 `/api/health`，设置页可手动重新检测；
+   启动时探一次，右上角状态点与设置页共用同一结果。
+
+**检查与放弃**：
+
+- 验证方式上放弃了浏览器自动化：本机没装 `agent-browser`，安装需要下载约 500MB Chromium，
+  当前网络条件下不现实。改用三重离线验证（见下），并把"未做真实点击"如实写在这里。
+- 中途发现 `records` 若直接复用全量列表，这一页和「巡检问题」完全一样，等于换了个标题糊弄自己，
+  所以改成按状态过滤 + 独立空态。
+
+**验证**：
+
+- `npx tsc -b` 无输出（类型通过）
+- `npm run build` 成功：17 modules / JS 237.71 kB / CSS 15.42 kB
+- dev server 转译结果里能查到 `VIEW_META`、`settings-panel`、`nav-badge`（7 处），说明新代码已生效
+- 后端 `/api/issues` 与前端 `/api/issues` 代理均可访问（前端 5173 → 200，代理透传正常）
+
+**未验证**：没有真实点击过这四个导航项（无浏览器自动化环境），需要刷新页面后人工确认。
+
+---
+
 ## 附录：核心代码索引（便于口头解释）
 
 | 关注点 | 文件 | 说明 |

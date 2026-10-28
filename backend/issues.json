@@ -3,6 +3,7 @@
     "id": "20261028162845.586277000",
     "targetId": "PUMP-A",
     "targetName": "水泵机组 A",
+    "zone": "一号泵房",
     "title": "水泵",
     "description": "坏 了",
     "priority": "high",
@@ -11,83 +12,15 @@
       "y": 0.5947098731994629,
       "z": -1.23368501663208
     },
-    "status": "resolved",
+    "status": "open",
     "createdAt": "2026-10-28T08:28:45Z",
-    "updatedAt": "2026-10-28T17:27:46+08:00",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261027225055.359294000",
-    "targetId": "PUMP-A",
-    "targetName": "水泵机组 A",
-    "title": "电机异常振动",
-    "description": "测试后端接口",
-    "priority": "high",
-    "position": {
-      "x": 1.2,
-      "y": 0.8,
-      "z": -2
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T22:50:55+08:00",
-    "updatedAt": "2026-10-28T17:56:58+08:00",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261027222652.533532400",
-    "targetId": "PUMP-A",
-    "targetName": "水泵机组 A",
-    "title": "电机异常振动",
-    "description": "运行时有明显振动",
-    "priority": "high",
-    "position": {
-      "x": -0.4,
-      "y": 1.2,
-      "z": -0.8
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T22:25:00Z",
-    "updatedAt": "2026-10-27T22:25:00Z",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261027213843.469860700",
-    "targetId": "",
-    "targetName": "",
-    "title": "机箱",
-    "description": "有问题",
-    "priority": "medium",
-    "position": {
-      "x": -1.4893687963485718,
-      "y": 1.1760770082473755,
-      "z": 1.600000023841858
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T21:38:43+08:00",
-    "updatedAt": "2026-10-27T21:38:43+08:00",
-    "zone": "未分区"
-  },
-  {
-    "id": "20261027213205.399286100",
-    "targetId": "",
-    "targetName": "",
-    "title": "机柜",
-    "description": "有问题",
-    "priority": "medium",
-    "position": {
-      "x": -1.8818379640579224,
-      "y": 1.2263920307159424,
-      "z": 1.600000023841858
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T21:32:05+08:00",
-    "updatedAt": "2026-10-27T21:32:05+08:00",
-    "zone": "未分区"
+    "updatedAt": "2026-10-28T23:35:15+08:00"
   },
   {
     "id": "20261027204625.028806800",
     "targetId": "",
     "targetName": "",
+    "zone": "未分区",
     "title": "测试：消防通道被占用",
     "description": "二楼走廊堆货",
     "priority": "high",
@@ -98,115 +31,13 @@
     },
     "status": "open",
     "createdAt": "2026-10-27T20:46:25+08:00",
-    "updatedAt": "2026-10-27T20:46:25+08:00",
-    "zone": "未分区"
-  },
-  {
-    "id": "20261028003656.650599200",
-    "targetId": "PUMP-A",
-    "targetName": "水泵机组 A",
-    "title": "wdx",
-    "description": "swf",
-    "priority": "medium",
-    "position": {
-      "x": 0.882494330406189,
-      "y": 1.0118190050125122,
-      "z": -1.2785096168518066
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T16:36:56Z",
-    "updatedAt": "2026-10-27T16:36:56Z",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261028001056.869461900",
-    "targetId": "CABINET-B",
-    "targetName": "控制柜 B",
-    "title": "3333",
-    "description": "3333",
-    "priority": "high",
-    "position": {
-      "x": -2.2261648178100586,
-      "y": 0.9383722543716431,
-      "z": 1.600000023841858
-    },
-    "status": "resolved",
-    "createdAt": "2026-10-27T16:10:56Z",
-    "updatedAt": "2026-10-28T17:28:43+08:00",
-    "zone": "配电区"
-  },
-  {
-    "id": "20261028000741.243309500",
-    "targetId": "CABINET-B",
-    "targetName": "控制柜 B",
-    "title": "2222222",
-    "description": "2222222",
-    "priority": "medium",
-    "position": {
-      "x": -1.865054965019226,
-      "y": 1.3045144081115723,
-      "z": 1.600000023841858
-    },
-    "status": "resolved",
-    "createdAt": "2026-10-27T16:07:41Z",
-    "updatedAt": "2026-10-28T17:29:30+08:00",
-    "zone": "配电区"
-  },
-  {
-    "id": "20261028000725.875706800",
-    "targetId": "PUMP-B",
-    "targetName": "水泵机组 B",
-    "title": "22222",
-    "description": "22222",
-    "priority": "medium",
-    "position": {
-      "x": -4.267434597015381,
-      "y": 1.0771178007125854,
-      "z": -0.8303143978118896
-    },
-    "status": "resolved",
-    "createdAt": "2026-10-27T16:07:25Z",
-    "updatedAt": "2026-10-28T17:27:26+08:00",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261028000454.032937900",
-    "targetId": "CABINET-A",
-    "targetName": "控制柜 A",
-    "title": "1111",
-    "description": "1111",
-    "priority": "medium",
-    "position": {
-      "x": -4.699999809265137,
-      "y": 1.2724459171295166,
-      "z": 1.648202657699585
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T16:04:54Z",
-    "updatedAt": "2026-10-27T16:04:54Z",
-    "zone": "配电区"
-  },
-  {
-    "id": "20261027235822.278668300",
-    "targetId": "CABINET-A",
-    "targetName": "控制柜 A",
-    "title": "11",
-    "description": "111",
-    "priority": "high",
-    "position": {
-      "x": -4.201445579528809,
-      "y": 1.6804388761520386,
-      "z": 1.600000023841858
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T15:58:22Z",
-    "updatedAt": "2026-10-27T15:58:22Z",
-    "zone": "配电区"
+    "updatedAt": "2026-10-27T20:46:25+08:00"
   },
   {
     "id": "20261027235559.406869000",
     "targetId": "CABINET-A",
     "targetName": "控制柜 A",
+    "zone": "配电区",
     "title": "端到端联调测试-1027-A",
     "description": "验证提交、绿色标记与后端持久化",
     "priority": "high",
@@ -217,13 +48,13 @@
     },
     "status": "open",
     "createdAt": "2026-10-27T15:55:59Z",
-    "updatedAt": "2026-10-27T15:55:59Z",
-    "zone": "配电区"
+    "updatedAt": "2026-10-27T15:55:59Z"
   },
   {
     "id": "20261027234306.265241100",
     "targetId": "PUMP-A",
     "targetName": "水泵机组 A",
+    "zone": "一号泵房",
     "title": "后端接口测试",
     "description": "检查巡检提交接口是否正常",
     "priority": "high",
@@ -234,47 +65,13 @@
     },
     "status": "open",
     "createdAt": "2026-10-27T15:43:06Z",
-    "updatedAt": "2026-10-27T15:43:06Z",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261027223526.029747100",
-    "targetId": "PUMP-B",
-    "targetName": "水泵机组 B",
-    "title": "2",
-    "description": "3",
-    "priority": "high",
-    "position": {
-      "x": -3.9275708198547363,
-      "y": 1.8991479873657227,
-      "z": -1.0767722129821777
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T14:35:26Z",
-    "updatedAt": "2026-10-27T14:35:26Z",
-    "zone": "一号泵房"
-  },
-  {
-    "id": "20261027223508.875500200",
-    "targetId": "PUMP-B",
-    "targetName": "水泵机组 B",
-    "title": "1",
-    "description": "2",
-    "priority": "medium",
-    "position": {
-      "x": -3.9116387367248535,
-      "y": 0.9009889960289001,
-      "z": -1.2227272987365723
-    },
-    "status": "open",
-    "createdAt": "2026-10-27T14:35:08Z",
-    "updatedAt": "2026-10-27T14:35:08Z",
-    "zone": "一号泵房"
+    "updatedAt": "2026-10-27T15:43:06Z"
   },
   {
     "id": "20261026210601.142071800",
     "targetId": "",
     "targetName": "",
+    "zone": "未分区",
     "title": "消防通道被占用",
     "description": "二楼走廊有杂物堆放，影响人员通行",
     "priority": "medium",
@@ -285,7 +82,6 @@
     },
     "status": "open",
     "createdAt": "2026-10-26T21:06:01+08:00",
-    "updatedAt": "2026-10-26T21:06:01+08:00",
-    "zone": "未分区"
+    "updatedAt": "2026-10-26T21:06:01+08:00"
   }
 ]
