@@ -769,6 +769,57 @@
 
 ---
 
+## P-026
+
+**目标**：对比第二份同题参考实现 `D:\31379\Downloads\ar-inspection-main` 的 server 结构，并按差异补做缺失项。
+
+**Prompt 原文**：
+
+> "D:\31379\Downloads\ar-inspection-main 这个人的呢"
+
+（随后我在四个候选项中选择了：**后端 panic 恢复 + 优雅退出（推荐）**）
+
+**结果**：
+
+这份与我的技术选型最近（同为 net/http 标准库、同样有 DELETE），差异在：
+
+| 维度 | 参考实现 | 我 |
+|---|---|---|
+| 文件组织 | 4 个文件同包（api/model/store/main）共 600 行 | 1 个 main.go |
+| 路由写法 | `HandleFunc("GET /api/issues/{id}")`（Go 1.22+ 带方法与路径参数） | `HandleFunc("/api/issues/", …)` 手工切字符串 |
+| 存储 | SQLite（modernc.org/sqlite） | JSON 文件 |
+| 健壮性 | CORS / 日志 / panic 恢复 / 请求体上限 / 优雅退出 | 只有 CORS + 请求体上限 |
+| 数据字段 | 多一个 `normal`（表面法线，标记朝向存库） | 多 `targetId` / `targetName` / `zone` |
+| AR | 真装了 `com.unity.xr.arfoundation 5.2.2` + 独立演示场景 | 只有 AR_MIGRATION.md 文档 |
+
+**检查后确认**：两份参考实现**都没有设备关联字段**，也都没把 issueId 写回标记对象
+（第二份 README 第 7 节自述："位置只有世界坐标，没有设备编号／区域等业务语义，
+同一坐标在不同时间上报无法区分设备"）。这两条是我独有且对题的加分项，
+因此**不跟着对方改数据模型**。
+
+**修改**（只动后端，零破坏）：
+
+1. `backend/main.go` 新增 `withRecovery` 中间件——handler 内 panic 时返回 500，
+   不再让整个进程崩掉（一次空指针不会把所有请求一起带走）。
+2. `backend/main.go` 的 `main()` 改为 `http.Server` + `signal.NotifyContext`
+   （`os.Interrupt` / `SIGTERM`）+ `Shutdown` 5 秒超时。
+   中间件顺序 `withRecovery(withCORS(mux))`：先兜 panic，再挂 CORS。
+3. `backend/main_test.go` 新增 `TestRecoveryMiddlewareTurnsPanicInto500`，
+   用 httptest 直接打一个必 panic 的 handler，断言 500 与响应体。
+
+**验证**：`gofmt -l` 无输出、`go vet` 干净、`go test ./...` **12 个用例全过**（新增 1 个）。
+重编译后用新二进制重启服务：`/api/health` 正常、`/api/issues` 仍 17 条，
+正常请求的 200 与 404 行为不受中间件影响。
+
+**放弃的一项（如实说明）**：想实机验证「收到信号后优雅退出」，
+Windows 上需用 `GenerateConsoleCtrlEvent` 发 CTRL_C_EVENT，
+但该信号发往**整个控制台进程组**，会波及同一控制台上的 shell 及其他进程，风险不可控，故放弃。
+**结论**：panic 恢复已实机验证；优雅退出的信号触发路径**未实机验证**，
+Windows 上应在控制台按 Ctrl+C 触发（Go 在该平台支持 `os.Interrupt`），
+被 `taskkill /F` 强杀则不会走优雅退出。
+
+---
+
 ## 附录：核心代码索引（便于口头解释）
 
 | 关注点 | 文件 | 说明 |

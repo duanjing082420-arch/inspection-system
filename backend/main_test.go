@@ -365,3 +365,21 @@ func TestLegacyRecordsAreNormalized(t *testing.T) {
 	// 直接改文件不会影响已经建好的 store。想让接口读到旧数据必须重启服务，
 	// 而「重启后归一化生效」这件事由 NewIssueStore 这条路径证明就够了。
 }
+
+// TestRecoveryMiddlewareTurnsPanicInto500：handler 内部 panic 时必须返回 500，
+// 而不是让整个进程崩掉 —— 否则一次意外会把正在处理的其他请求一起带走。
+func TestRecoveryMiddlewareTurnsPanicInto500(t *testing.T) {
+	panicking := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("模拟 handler 内部崩溃")
+	})
+
+	recorder := httptest.NewRecorder()
+	withRecovery(panicking).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/issues", nil))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("panic 时应返回 500，实际 %d", recorder.Code)
+	}
+	if !strings.Contains(recorder.Body.String(), "服务器内部错误") {
+		t.Fatalf("响应体应给出错误说明，实际 %q", recorder.Body.String())
+	}
+}

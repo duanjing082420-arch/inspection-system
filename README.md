@@ -8,7 +8,7 @@ Unity（团结引擎）三维场景 + React 管理台 + Go 后端的最小闭环
 | 端 | 位置 | 说明 |
 |---|---|---|
 | Unity | `unity/` | 团结引擎 2022.3.62t17，场景 `unity/Assets/Scenes/SampleScene.scene` |
-| Go 后端 | `backend/` | net/http + JSON 文件存储，默认 `:8080` |
+| Go 后端 | `backend/` | net/http + JSON 文件存储，默认 `:8080`；带 CORS、请求体上限、panic 恢复、优雅退出 |
 | React 前端 | `frontend/` | Vite + React 19 + TS，dev `:5173`，通过代理访问 `/api` |
 
 `unity/` 是从引擎工作目录 `D:/Tuanjie Cowork/HubFiles/InspectMark/` 复制过来的源码部分：

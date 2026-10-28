@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -177,6 +181,25 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 // withCORS 允许 React 开发服务器（localhost:5173）直接跨域调用本服务。
 // Unity 客户端不受同源策略限制，但浏览器端必须有这些头，否则 preflight 会失败。
+// withRecovery 兜住单个请求处理过程中的 panic，返回 500 而不是让整个进程崩掉。
+// 任何一个 handler 里出现空指针、越界这类问题时，只影响这一个请求，
+// 其余接口仍然可用 —— 否则一次意外就把服务整个带下线。
+func withRecovery(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			recovered := recover()
+			if recovered == nil {
+				return
+			}
+			log.Printf("[panic] %s %s -> %v", r.Method, r.URL.Path, recovered)
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "服务器内部错误"})
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -687,8 +710,37 @@ func main() {
 	log.Printf("数据保存位置：%s", absolutePath)
 	log.Printf("原始报文留档：%s", rawRecordFile)
 
-	// 统一挂 CORS：浏览器端的 React 才能直接跨域访问。
-	if err := http.ListenAndServe(addr, withCORS(mux)); err != nil {
-		log.Fatalf("后端服务启动失败：%v", err)
+	// 中间件顺序：先兜 panic，再挂 CORS（浏览器端的 React 才能跨域访问）。
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           withRecovery(withCORS(mux)),
+		ReadHeaderTimeout: 10 * time.Second,
 	}
+
+	// 监听放到 goroutine 里，主线程留下来等退出信号。
+	serverErrors := make(chan error, 1)
+	go func() {
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	signalContext, stopListening := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopListening()
+
+	select {
+	case err := <-serverErrors:
+		// 主动 Shutdown 会以 ErrServerClosed 返回，那是正常退出，不算启动失败
+		if errors.Is(err, http.ErrServerClosed) {
+			return
+		}
+		log.Fatalf("后端服务启动失败：%v", err)
+	case <-signalContext.Done():
+	}
+
+	log.Printf("收到退出信号，正在关闭服务（最多等待 5 秒）…")
+	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownContext); err != nil {
+		log.Printf("关闭服务时出错：%v", err)
+	}
+	log.Printf("服务已停止")
 }
