@@ -245,8 +245,19 @@ AR 状态提示要照同样的标准做，只是对象从"网络"换成"会话�
 题面第 9 节明确"选择本备选题不会因为未提供真实 AR 真机演示而扣分"，
 真机 AR 的改造方案写在 `AR_MIGRATION.md`，未做真机验证。
 
-录制完成后放在 `docs/videos/` 下。如果单个文件超过 100 MB（GitHub 单文件上限），
-上传到仓库的 Release 附件里，并在本节给出链接——不要硬塞进 git 历史。
+视频体积大（合计约 126 MB），**没有放进 git 历史**，而是作为 Release 附件提供：
+
+<https://github.com/duanjing082420-arch/inspection-system/releases/tag/v1.0>
+
+| 附件 | 内容 | 大小 |
+|---|---|---|
+| `01-unity-on-site.mp4` | 视频一 · Unity 现场端（①②③） | 57.4 MB |
+| `02-react-go-linkage.mp4` | 视频二 · 三端联动（④⑤⑥） | 68.3 MB |
+
+分镜与口播要点见 `VIDEO_SCRIPT.md`。
+
+> 附件名用了英文：GitHub Release 上传时，文件名里的**空格和非 ASCII 字符会被截断**，
+> 中文名传上去会变成 `01-Unity.mp4` 这种看不出内容的名字，所以改成纯英文命名。
 
 ## 文档
 
