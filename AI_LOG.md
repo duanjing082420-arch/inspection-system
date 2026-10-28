@@ -683,6 +683,49 @@
 
 ---
 
+## P-024
+
+- 目标：回应「ticket-agent 已经用 Docker 容器化部署，为什么你说机器上不存在 Docker」这一质疑，
+  并真正验证 `Dockerfile` / `docker-compose.yml` 能不能构建出镜像。
+
+### Prompt 原文
+
+> 我电商售后工单 Agent那个项目都用了docker容器化部署，为什么你又说机器上不存在
+
+### 结果
+
+- **采用**
+- 先核实而不是辩解：`ticket-agent` 确实有 `Dockerfile` + `.dockerignore`，
+  但它的 `README.md` 第 371 行原文写着「**本机无 Docker 环境**，现由 `ci.yml` 的 docker build job
+  在 GitHub Runner 上验证」。两件事不矛盾——那个项目也从未在本机跑过容器。
+- **我的失误**：明知本机无 Docker，上一轮却只在 README 标一句「未验证」就交差，
+  没有套用项目里已有的「CI 云端验证」惯例。质疑的真正指向是「那你为什么不去验证」。
+- 补 `backend/.dockerignore`（排除 `issues.json` / `inspection_records.json` / `*.exe`，
+  运行期数据不该固化进镜像）与 `frontend/.dockerignore`。
+  后者最关键的是 `node_modules/`：Dockerfile 先 `npm ci` 再 `COPY . .`，
+  不排除的话宿主机 Windows 原生模块会覆盖容器里刚装好的 Linux 版，`npm run build` 必炸。
+- 新增 `.github/workflows/ci.yml`，4 个 job：`go vet` + `go test`、
+  `backend docker build`、`tsc -b && vite build`、`frontend docker build`。
+- 建公开仓并推送 `https://github.com/duanjing082420-arch/inspection-system`
+  （201 文件 / 67644 行）。三次 push 的 CI **全部 success**：
+  `backend docker build` 27s、`frontend docker build` 14s、`go vet + go test` 22s、
+  `tsc + vite build` 11s。
+- README 与遗留项措辞同步改为「已验证能构建，未验证运行时」。
+
+**检查**：离线核对了四处 `docker build` 的高频坑——
+`go.mod` 声明 `go 1.22` 与 `golang:1.22-alpine` 对齐（写更高版本镜像编译器会拒绝构建）；
+`package-lock.json` 存在；`nginx.conf` 上游写 compose 服务名 `backend:8080` 而非 localhost；
+`NewIssueStore` 在数据文件不存在时返回空存储（容器首次启动挂空卷不会崩）。
+
+**修改**：CI 首跑出现 `Restore cache failed ... go.sum` 警告，
+不是失败但输出不干净 —— 后端只用标准库没有 `go.sum`，给 `setup-go` 加 `cache: false` 消除。
+
+**放弃**：没有为了让 `docker compose` 能在本机跑而安装 Docker Desktop。
+本机外网大文件下载极慢（历史实测 15MB 量级要几十分钟），装一个几百 MB 的桌面应用不划算，
+且它并不能比 CI 多验证出什么——CI 已证明镜像能构建。
+
+---
+
 ## 附录：核心代码索引（便于口头解释）
 
 | 关注点 | 文件 | 说明 |
@@ -709,7 +752,9 @@
 ### 遗留项（已知、未做）
 
 - **没有真机 AR 演示**：`AR_MIGRATION.md` 是迁移方案文档，不是已实现功能。
-- **Docker 编排未实机验证**：本机没有 Docker Desktop，`docker compose up` 没跑过。
+- **Docker 只验证了构建、没验证运行时**：本机没有 Docker 客户端，
+  `docker build` 已由 `.github/workflows/ci.yml` 在 GitHub Runner 上跑通（4 个 job 全绿），
+  但 `docker compose up` 之后的容器联动、数据卷挂载没有实测过。
 - **Unity 侧最新改动待编译**：P-020/P-021 改了 5 个脚本（区域链路 + 标记拾取），
   `Assembly-CSharp.dll` 仍停在 18:06，需要手动切回团结引擎触发编译后 Play 验证。
 - 3 条无设备编号的历史记录仍归在「未知设备」（补 `targetId` 的脚本已随临时目录清理，
