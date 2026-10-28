@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!444 &1
+TextureManager:
+  m_ObjectHideFlags: 0
+  serializedVersion: 9
+  m_UseTextureManager: 0
+  m_CullRenderersNotReady: 0
+  m_CDNUrl: 
+  m_MaxDownloadRetryCount: 3
+  m_MaxDownloadCount: 10
+  m_TextureFormatGroups:
+  - name: pc
+    format: 1
+  - name: mobile
+    format: 4

@@ -1,0 +1,29 @@
+# Unity 引擎缓存（452MB，打开后自动生成，不入库）
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/UserSettings/
+unity/Obj/
+unity/Build/
+unity/Builds/
+unity/MemoryCaptures/
+unity/Recordings/
+
+# 前端依赖与构建产物
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Go 编译产物
+backend/backend.exe
+backend/backend_new.exe
+backend/backend_t*.exe
+backend/*.log
+
+# 编辑器 / 系统
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

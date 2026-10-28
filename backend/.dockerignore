@@ -1,0 +1,27 @@
+# .dockerignore：告诉 docker build 哪些文件不要进构建上下文。
+#
+# 为什么必须写（不是可有可无的洁癖）：
+# 1) 防止运行期数据被固化进镜像 —— issues.json 是巡检记录，容器里的数据应该来自
+#    挂载卷（INSPECTION_DATA_FILE=/data/issues.json）。如果把它拷进镜像，
+#    镜像里就永久带着一份构建时刻的旧数据，既误导又泄漏。
+# 2) 防止污染/撑大镜像 —— backend.exe 是 Windows 二进制，放进 Linux 镜像
+#    纯属垃圾，而且有几十 MB。
+
+# ---- 运行期数据：容器里由数据卷提供 ----
+issues.json
+inspection_records.json
+
+# ---- 编译产物：镜像里会用 Linux 环境重新编译 ----
+backend.exe
+backend_new.exe
+backend_t*.exe
+*.exe
+*.log
+
+# ---- 版本控制 ----
+.git/
+.gitattributes
+
+# ---- 编辑器 ----
+.vscode/
+.idea/

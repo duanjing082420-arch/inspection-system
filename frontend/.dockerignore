@@ -1,0 +1,24 @@
+# .dockerignore：告诉 docker build 哪些文件不要进构建上下文。
+#
+# 这里最关键的一条是 node_modules —— 不是洁癖，是会真的构建失败：
+# Dockerfile 里的顺序是「先 npm ci 装依赖，再 COPY . . 拷源码」。
+# 如果不排除宿主机的 node_modules，第二步会把 Windows 平台编译出来的
+# 原生模块（比如 esbuild / rolldown 的 .exe/.node）覆盖掉容器里刚装好的
+# Linux 版本，结果 npm run build 在 alpine 里直接执行不了。
+# 这类问题在本地看不出来，只有真 build 才炸，所以必须在这里挡掉。
+
+# ---- 依赖：必须由容器内的 npm ci 重装 ----
+node_modules/
+.pnpm-store/
+
+# ---- 构建产物：镜像里会重新生成 ----
+dist/
+.vite/
+
+# ---- 版本控制 ----
+.git/
+.gitattributes
+
+# ---- 编辑器 ----
+.vscode/
+.idea/

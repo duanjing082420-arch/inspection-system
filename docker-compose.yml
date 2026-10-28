@@ -1,0 +1,27 @@
+# 一键起后端 + 前端：docker compose up --build
+#
+# Unity 端不受影响：它连的是宿主机的 localhost:8080，
+# 这里的 backend 容器把 8080 映射出来了，所以一边用 Docker 一边在编辑器里 Play 也能通。
+services:
+  backend:
+    build: ./backend
+    container_name: inspection-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      # 巡检记录挂在卷里，容器重建不丢数据
+      - inspection-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: inspection-frontend
+    ports:
+      # 本地开发习惯用 5173（vite dev 的端口），这里沿用，避免改习惯
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  inspection-data:

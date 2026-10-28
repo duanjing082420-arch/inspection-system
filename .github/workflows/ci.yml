@@ -1,0 +1,79 @@
+# 每次 push / PR 自动跑：Go 测试 + 前端类型检查 + 两个镜像构建。
+#
+# 为什么必须把 docker build 放进 CI：
+# 开发这台机器上没有装 Docker（无法本地验证镜像），而 Dockerfile 的失败往往
+# 是环境相关的 —— 比如 COPY 路径写错、go.mod 版本高于镜像里的编译器、
+# 宿主机 node_modules 覆盖容器依赖。这些在本地都看不出来，只有真 build 才炸。
+# 交给 GitHub Runner 验证，成本为零，且能保证仓库里这份 Dockerfile 是真的能构建。
+#
+# 与后端业务测试的关系：go test 覆盖接口行为，docker build 覆盖交付形态，
+# 两者互不替代 —— 测试全绿但镜像构建不出来，照样交付不了。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-test:
+    name: go vet + go test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # 必须与 backend/Dockerfile 的 golang:1.22-alpine 对齐，
+          # 否则 CI 验证的 Go 版本和镜像里实际用的不是同一个
+          go-version: "1.22"
+
+      - name: 静态检查
+        working-directory: backend
+        run: go vet ./...
+
+      - name: 接口测试
+        working-directory: backend
+        run: go test ./... -count=1
+
+  backend-image:
+    name: backend docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建后端镜像
+        run: docker build -t inspection-backend ./backend
+
+  frontend-build:
+    name: tsc + vite build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 与 frontend/Dockerfile 的 node:22-alpine 对齐
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        working-directory: frontend
+        run: npm ci
+
+      # package.json 的 build 就是 "tsc -b && vite build"，
+      # 所以这一步同时验证了类型检查（改了字段类型会在这里红）
+      - name: 类型检查 + 打包
+        working-directory: frontend
+        run: npm run build
+
+  frontend-image:
+    name: frontend docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建前端镜像
+        run: docker build -t inspection-frontend ./frontend
