@@ -28,6 +28,9 @@ jobs:
           # 必须与 backend/Dockerfile 的 golang:1.22-alpine 对齐，
           # 否则 CI 验证的 Go 版本和镜像里实际用的不是同一个
           go-version: "1.22"
+          # 后端只用标准库，没有 go.sum，默认的模块缓存会报
+          # "Dependencies file is not found" 警告，关掉它
+          cache: false
 
       - name: 静态检查
         working-directory: backend
