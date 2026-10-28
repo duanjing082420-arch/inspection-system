@@ -207,6 +207,11 @@ func withCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
+		// 巡检数据随时在变，绝不能让浏览器拿缓存的旧列表顶替。
+		// 没这个头时，Chrome 会对无缓存头的 GET 响应做启发式缓存，
+		// 表现为「后端已经停了，刷新页面却还是旧数据」——看不出服务断了。
+		w.Header().Set("Cache-Control", "no-store")
+
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
