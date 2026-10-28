@@ -21,6 +21,13 @@ backend/backend_new.exe
 backend/backend_t*.exe
 backend/*.log
 
+# 演示视频：默认不入库。GitHub 单文件上限 100MB，而录出来的 mp4 常超这个数，
+# 直接 git add 会让 push 失败、还得清理历史。
+# 要真正交付视频时：要么压到 100MB 以内后 git add -f，要么传到 Release 附件。
+*.mp4
+*.mov
+*.avi
+
 # 编辑器 / 系统
 .vs/
 .vscode/
