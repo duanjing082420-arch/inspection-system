@@ -8,8 +8,8 @@ Unity（团结引擎）三维场景 + React 管理台 + Go 后端的最小闭环
 | 端 | 位置 | 说明 |
 |---|---|---|
 | Unity | `unity/` | 团结引擎 2022.3.62t17，场景 `unity/Assets/Scenes/SampleScene.scene` |
-| Go 后端 | `backend/` | net/http + JSON 文件存储，默认 `:8080`；带 CORS、请求体上限、panic 恢复、优雅退出 |
-| React 前端 | `frontend/` | Vite + React 19 + TS，dev `:5173`，通过代理访问 `/api` |
+| Go 后端 | `backend/` | Go 1.22 + net/http（标准库，零外部依赖），JSON 文件存储，默认 `:8080` |
+| React 前端 | `frontend/` | React 19 + TypeScript + Vite 8，dev `:5173`，通过代理访问 `/api` |
 
 `unity/` 是从引擎工作目录 `D:/Tuanjie Cowork/HubFiles/InspectMark/` 复制过来的源码部分：
 只含 `Assets/`、`Packages/`、`ProjectSettings/`，**不含 `Library/`、`Temp/`、`Logs/`（452MB 缓存）**。
@@ -109,6 +109,19 @@ backend/  main.go（路由+存储+校验）  main_test.go（11 个用例）  Doc
 frontend/ src/App.tsx（列表/筛选/详情/新增/改状态/删除）  App.css  Dockerfile  nginx.conf
 ```
 
+## 后端地址
+
+默认 `http://localhost:8080`，三端各自的改法：
+
+| 端 | 地址写在哪 |
+|---|---|
+| Go 后端 | `backend/main.go` 里 `addr := ":8080"`，改端口要改代码重新编译 |
+| React | 不写死地址。代码里只写 `/api/...`，由 `frontend/vite.config.ts` 的 proxy 转发到 8080 |
+| Unity | 场景里 `InspectionApiClient` 组件的 `apiUrl` 字段，填 `/api/issues` |
+
+数据文件路径可用环境变量 `INSPECTION_DATA_FILE` 覆盖（容器里用它指向挂载的数据卷），
+不设就是 `backend/issues.json`。
+
 ## 接口约定
 
 ```
@@ -132,18 +145,79 @@ position{x,y,z} / status / createdAt / updatedAt`。
    但 `docker compose up` 之后前后端联动、数据卷挂载是否真的正常，没有实测过。
 3. 后端 `saveLocked` 是整文件覆盖写，进程被强杀或并发写时理论上可能把文件写坏；
    改成「临时文件 + 原子 rename」是下一步该做的加固。
-4. **演示数据现在是空的**。`backend/issues.json` 内容为 `[]`——
-   在 Unity 里逐条测试删除功能时把 17 条记录全删了（这个是主动测试，不是 bug，
-   日志里每条 `DELETE` 都返回成功）。
-   需要恢复的话，首次提交里还留着完整的 17 条：
-   `git show 5700d2d:backend/issues.json > backend/issues.json`，然后重启后端。
-   （顺带一提，原先那 3 条 `targetId` 为空的历史记录也一并删掉了，
-   所以「未知设备」分组现在也是空的。）
+4. **演示数据被删到只剩几条**。为了验证删除功能，17 条记录被逐条删掉了大半
+   （这是主动测试，不是 bug，`Editor.log` 里每条 `DELETE` 都返回成功）。
+   仓库里始终留着完整的 17 条可随时恢复：
+   ```bash
+   git show 5700d2d:backend/issues.json > backend/issues.json
+   ```
+   改完**必须重启后端**——服务启动时才把文件读进内存，直接改文件不会生效，
+   而且后端下一次保存会把内存里的旧数据写回去覆盖掉你刚恢复的内容。
+   恢复后记得重启：先 `Ctrl+C` 停掉，再 `.\backend.exe`。
 5. 三维标记按后端数据全量生成，坐标全 0 的记录（早期没有 position 字段）不会生成标记。
 6. React 端新增表单不传 `targetId`（网页端登记时不知道设备编号），所以网页新增的记录
    在三维场景里没有标记。
+
+## 题面第 5 节：三个 AR 基础问题
+
+本项目跑的是**固定虚拟场景**，下面是如果要迁移到真实 AR 时，我对这三个问题的理解。
+（更完整的改造点逐条对照在 `AR_MIGRATION.md`。）
+
+**Q1：改成真实 AR 后，平面检测和点击放置通常需要哪些 AR Foundation 能力？**
+
+需要 `AR Session` + `XR Origin` 打底；`ARPlaneManager` 做平面检测（本项目是机房地面，
+配 `Detection Mode = Horizontal`，再挂 `AR Default Plane` 把识别到的平面画出来让用户知道哪里能点）；
+`ARRaycastManager` 把屏幕点击转成射线，用 `TrackableType.PlaneWithinPolygon`
+去命中**已识别的平面**而不是任意网格；拿到 `ARRaycastHit.pose` 后在那里实例化标记，
+再用 `ARAnchorManager` 挂一个 `ARAnchor`，减少手机移动时的漂移。
+另外还需要 `ARCameraManager`（把相机画面当背景）、相机权限申请，以及运行时检查 `ARSession.state`。
+
+对照本项目的代码：`InspectionRaycaster.cs` 现在用的是 `Physics.Raycast`，
+打的是场景里真实存在的 Mesh，命中就取 `hit.point`。这一条在 AR 里要整个换掉——
+真实环境里你点到的墙并没有一个 BoxCollider，能命中的只有平面检测结果。
+
+**Q2：为什么只保存 Unity 中的 x/y/z 坐标，通常不能保证下次启动对应同一个真实位置？**
+
+因为 AR 的世界坐标系原点是**会话开始那一刻设备的位姿**，每次启动都不一样——
+同一个墙角，两次运行会给出完全不同的三元组。加上视觉里程计和 IMU 会持续漂移，
+系统在修正 tracking 的时候还会悄悄微调整个坐标系，不同设备、不同尺度之间也不通用。
+只存三个数字，等于存了"某个随机坐标系里的一个点"，没有任何与之绑定的地图信息。
+
+要跨启动还原，得靠 ARCore Cloud Anchor / ARKit ARWorldMap 这类持久化锚点，
+或者在现场放二维码、图像标记做一次标定。
+
+**这一点恰恰是本项目和真实 AR 最本质的差别**：虚拟场景的世界原点写在场景文件里、恒定不变，
+所以我现在存 x/y/z 就能精确还原标记位置——`IssueMarkerLayer.Sync()` 每次拉完列表，
+直接按坐标把球摆回去，位置分毫不差。也正因为如此，"从后端恢复历史标记"这个加分项在虚拟场景里
+是确定可行的，换到真机上就必须引入锚点才能谈还原。
+
+**Q3：AR 初始化失败、设备不支持或 Tracking 异常时，应该如何提示用户？**
+
+启动前先查 `ARSession.state` 和 ARCore 可用性：设备不在支持列表、或没装
+Google Play Services for AR，就明确提示"当前设备不支持 AR"并禁用放置功能，
+**绝不能让相机黑屏让用户自己猜**；相机权限被拒要提示并引导去系统设置开启；
+Tracking 掉到 `Limited` 时提示"请缓慢移动手机、保证光线充足、对准有纹理的表面"；
+初始化超时或 Error 时给一个"重试 / 重置会话"的入口。
+原则是所有异常都要有**可读的中文提示 + 恢复入口**，不崩溃、不静默失效。
+
+这个思路我在网络失败上已经做了一遍：提交失败时红色 toast + 行内错误，
+且**保留已填内容和待提交标记**方便重试；拉列表失败保留上一次结果，不清空面板。
+AR 状态提示要照同样的标准做，只是对象从"网络"换成"会话与 tracking"。
+
+## 演示视频
+
+两段，共 8~10 分钟（录制脚本见 `VIDEO_SCRIPT.md`）：
+
+| 视频 | 内容 |
+|---|---|
+| A · Unity 端 | 场景操作 → 射线命中放标记 → 填表提交 → 列表与三维双向联动 → 筛选 → 删除 |
+| B · 网页与后端 | 启动后端 → React 列表/筛选/改状态/删除 → 停掉后端看错误提示 → 重启恢复 |
+
+录制完成后放在 `docs/videos/` 下。如果单个文件超过 100 MB（GitHub 单文件上限），
+上传到仓库的 Release 附件里，并在本节给出链接——不要硬塞进 git 历史。
 
 ## 文档
 
 - `AI_LOG.md`：所有主动指令的原文、采纳结果与验证过程
 - `AR_MIGRATION.md`：AR 版迁移方案 + 真实 AR 与虚拟场景的差异对照
+- `VIDEO_SCRIPT.md`：演示视频的分镜与口播要点
