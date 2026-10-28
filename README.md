@@ -53,11 +53,13 @@ docker compose up --build
 - `frontend/Dockerfile`：Node 构建 → nginx 托管，`nginx.conf` 把 `/api` 反代到 backend 容器
 - 巡检记录落在 `inspection-data` 卷里，容器重建不丢
 
-> ⚠️ **本机没有安装 Docker，两个镜像都没在本机构建过。**
-> 改为交给 CI 在云端验证：`.github/workflows/ci.yml` 每次 push 都会跑
-> `docker build`，同时跑 `go vet`/`go test` 和 `tsc -b && vite build`。
+> **本机没有安装 Docker**，所以镜像不是在本机构建的，而是交给 CI 验证：
+> `.github/workflows/ci.yml` 每次 push 都在 GitHub Runner 上跑 `docker build`，
+> 同时跑 `go vet`/`go test` 和 `tsc -b && vite build`。
+> **四个 job 已全部通过**（见仓库 Actions 页），也就是说仓库里这两份 Dockerfile 是确认能构建出镜像的。
+> 没验证的是**运行时**：`docker compose up` 之后前后端能否正常联动，那需要有 Docker 的环境实测。
 >
-> 离线能查的都查过了，这几处是最容易让 `docker build` 直接失败的：
+> 构建前离线核对过这几处（`docker build` 最容易栽的地方）：
 > - `go.mod` 声明 `go 1.22`，与 `golang:1.22-alpine` 对齐（写更高版本镜像编译器会拒绝构建）
 > - `package-lock.json` 存在，`npm ci` 可用
 > - `nginx.conf` 上游写的是 compose 服务名 `backend:8080`，不是 localhost（容器内 localhost 指自己，会 502）
@@ -107,9 +109,9 @@ position{x,y,z} / status / createdAt / updatedAt`。
 ## 已知问题与未完成内容（如实列出）
 
 1. **没有真机 AR 演示**。迁移到 AR Foundation 的方案写在 `AR_MIGRATION.md`，是设计文档不是已实现功能。
-2. **Docker 镜像未经实机构建**（本机无 Docker 客户端，Dockerfile / compose 只做了静态核对）。
-   `.github/workflows/ci.yml` 已写好用于在 GitHub Runner 上验证 `docker build`，
-   但项目尚未建 Git 仓库，**CI 一次都还没真正跑过**。
+2. **Docker 只验证了「能构建」，没验证「能跑起来」**。本机无 Docker 客户端，
+   `docker build` 由 CI 在 GitHub Runner 上跑通（四个 job 全绿），
+   但 `docker compose up` 之后前后端联动、数据卷挂载是否真的正常，没有实测过。
 3. 后端 `saveLocked` 是整文件覆盖写，进程被强杀或并发写时理论上可能把文件写坏；
    改成「临时文件 + 原子 rename」是下一步该做的加固。
 4. 历史数据里有 3 条记录 `targetId` 为空（早期版本留下的），列表里归到「未知设备」，
